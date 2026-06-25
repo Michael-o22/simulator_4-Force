@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Drone Physics Simulator | สื่อการเรียนรู้ฟิสิกส์การบิน</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Core Styling System - Responsive Minimalist Apple-like Design */
+        :root {
+            --bg-color: #f8fafc;        /* Slate 50 - Soft grayish white */
+            --panel-bg: #ffffff;        /* Pure White */
+            --panel-header-bg: #f1f5f9; /* Slate 100 */
+            --border-color: #e2e8f0;    /* Slate 200 */
+            --text-primary: #0f172a;    /* Slate 900 */
+            --text-secondary: #475569;  /* Slate 600 */
+            --text-muted: #94a3b8;      /* Slate 400 */
+            --accent: #2563eb;          /* Blue 600 */
+            --accent-light: #eff6ff;    /* Blue 50 */
+            --accent-hover: #1d4ed8;
+            
+            /* Basic 4 Forces Colors */
+            --color-thrust: #10b981;    /* Emerald - Thrust */
+            --color-lift: #0284c7;      /* Sky Blue - Lift */
+            --color-weight: #e11d48;    /* Rose - Weight */
+            --color-drag: #8b5cf6;      /* Violet - Drag */
+            
+            /* Status Colors */
+            --color-hover: #10b981;
+            --color-climb: #0ea5e9;
+            --color-descend: #f59e0b;
+            --color-crash: #ef4444;
+            --color-ground: #64748b;
+            
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.02);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.04), 0 2px 4px -2px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+            --radius-lg: 12px;
+            --radius-md: 8px;
+            --radius-sm: 4px;
+            --transition: all 0.2s ease;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #0b0f19;
+            --panel-bg: #151c2c;
+            --panel-header-bg: #1e293b;
+            --border-color: #222d44;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #3b82f6;
+            --accent-light: #1e293b;
+            --accent-hover: #60a5fa;
+            
+            --shadow-md: 0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -4px rgba(0,0,0,0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+        }
+
+        /* Header */
+        header {
+            background-color: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.8rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header-title-area h1 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .header-title-area h1 span {
+            font-family: 'Outfit', sans-serif;
+            color: var(--accent);
+        }
+
+        .header-title-area p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .theme-toggle-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            padding: 5px 10px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            color: var(--text-primary);
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .theme-toggle-btn:hover {
+            background-color: var(--panel-header-bg);
+        }
+
+        /* Main Content Responsive Grid */
+        .main-container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 1.25rem 1rem;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+            flex-grow: 1;
+        }
+
+        @media (min-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1.6fr 1fr; /* Flight simulator is largest and prominent */
+            }
+        }
+
+        /* Card Panels */
+        .card {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            height: fit-content;
+        }
+
+        .card-header {
+            background-color: var(--panel-header-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.6rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .card-body {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Simulation Canvas Box */
+        .sim-wrapper {
+            position: relative;
+            background-color: #f0f9ff; /* Soft sky blue */
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            aspect-ratio: 16/9;
+            width: 100%;
+            cursor: pointer; /* Pointer to hint click-to-reset when crashed */
+        }
+
+        #sim-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Canvas Overlays */
+        .canvas-toolbar {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            pointer-events: none;
+        }
+
+        .canvas-btn {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 6px 12px;
+            border-radius: var(--radius-md);
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            pointer-events: auto;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+        }
+
+        .canvas-btn:hover {
+            background: #ffffff;
+            border-color: var(--text-muted);
+        }
+
+        .canvas-status {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.7rem;
+            color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--color-ground);
+        }
+
+        .status-dot.active {
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+        }
+
+        /* Force Legends */
+        .legend-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        @media (min-width: 640px) {
+            .legend-container {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .legend-color {
+            width: 10px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        /* Control Sliders layout */
+        .control-section {
+            margin-bottom: 1rem;
+        }
+
+        .control-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-group-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .control-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .slider-box {
+            background-color: var(--panel-header-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .slider-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .slider-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Visual Slider Tracks */
+        .slider-control input[type="range"] {
+            flex-grow: 1;
+            height: 6px;
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+
+        #slide-power {
+            background: linear-gradient(to right, var(--border-color) 0%, var(--color-thrust) 100%);
+        }
+
+        #slide-tilt {
+            background: linear-gradient(to right, #3b82f6 0%, var(--border-color) 50%, #f59e0b 100%);
+        }
+
+        .slider-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            transition: var(--transition);
+        }
+
+        .slider-control input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: var(--accent-hover);
+        }
+
+        .slider-desc {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+        }
+
+        /* Preset Buttons */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .btn {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+            padding: 8px 12px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-weight: 600;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn:hover {
+            background-color: var(--panel-header-bg);
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+            border-color: var(--accent-hover);
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: var(--color-weight);
+            border-color: var(--color-weight);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            filter: brightness(0.9);
+        }
+
+        /* Graphical Forces Balance Dashboard */
+        .balance-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background-color: var(--panel-header-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 10px;
+        }
+
+        .balance-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+
+        .balance-axis {
+            color: var(--text-secondary);
+        }
+
+        .balance-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: white;
+            transition: var(--transition);
+        }
+
+        .balance-badge.climb { background-color: var(--color-climb); }
+        .balance-badge.descend { background-color: var(--color-descend); }
+        .balance-badge.hover { background-color: var(--color-hover); }
+        .balance-badge.grounded { background-color: var(--color-ground); }
+        .balance-badge.crashed { background-color: var(--color-crash); }
+
+        .balance-badge.move-right { background-color: #3b82f6; }
+        .balance-badge.move-left { background-color: #f59e0b; }
+        .balance-badge.steady { background-color: var(--color-hover); }
+
+        .balance-icon {
+            font-size: 0.7rem;
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--panel-bg);
+            border-top: 1px solid var(--border-color);
+            padding: 0.8rem 1.5rem;
+            text-align: center;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: auto;
+        }
+
+        .footer-logo {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body data-theme="light">
+
+    <!-- Header Section -->
+    <header>
+        <div class="header-title-area">
+            <h1><span>Drone</span> Flight Dynamics Laboratory</h1>
+            <p>สื่อการเรียนรู้แรงทั้ง 4 ในการบินของโดรน (The 4 Forces of Flight)</p>
+        </div>
+        <div class="header-actions">
+            <button id="theme-toggle-btn" class="theme-toggle-btn">
+                <span>Dark Mode</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="main-container">
+
+        <!-- Left Column: Flight Simulator Screen (Largest & Prominent) -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                    หน้าจอจำลองการบิน (Flight Simulator)
+                </div>
+                <div>
+                    <button id="btn-grid" class="btn" style="padding: 4px 8px; font-size: 0.65rem;">แสดงตารางพิกัด (Grid)</button>
+                </div>
+            </div>
+            <div class="card-body">
+                
+                <!-- Simulation Canvas Container -->
+                <div class="sim-wrapper" id="canvas-wrapper">
+                    <canvas id="sim-canvas"></canvas>
+                    
+                    <!-- Reset button overlay -->
+                    <div class="canvas-toolbar">
+                        <button id="btn-reset-pos" class="canvas-btn">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                            วางโดรนบนพื้นใหม่ (Reset)
+                        </button>
+                    </div>
+
+                    <!-- Status Badge overlay -->
+                    <div class="canvas-status">
+                        <div id="status-led" class="status-dot"></div>
+                        <span>สถานะการบิน: </span>
+                        <span id="txt-flight-status" style="font-weight: 600;">จอดนิ่งอยู่บนพื้น</span>
+                    </div>
+                </div>
+
+                <!-- Force Vectors Color Legend -->
+                <div class="legend-container">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: var(--color-thrust);"></div>
+                        <span>Thrust (แรงขับรวม)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: var(--color-lift);"></div>
+                        <span>Lift (แรงยกแนวตั้ง)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: var(--color-weight);"></div>
+                        <span>Weight (น้ำหนักวัตถุ)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: var(--color-drag);"></div>
+                        <span>Drag (แรงต้านอากาศ)</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Right Column: Control Panel & Telemetry Dashboard -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+                    แผงควบคุมและสมดุลแรง (Controls & Force Balance)
+                </div>
+            </div>
+            <div class="card-body">
+                
+                <!-- Graphical Forces Balance Dashboard -->
+                <div class="control-section">
+                    <div class="control-group-title">วิเคราะห์สมดุลแรงตามเวลาจริง (Flight Force Balance)</div>
+                    <div class="balance-container">
+                        <!-- Vertical balance -->
+                        <div class="balance-row">
+                            <span class="balance-axis">แนวดิ่ง (Lift vs Weight):</span>
+                            <div id="bal-vert-badge" class="balance-badge grounded">
+                                <span id="bal-vert-txt">จอดนิ่งอยู่บนพื้น</span>
+                                <span id="bal-vert-icon" class="balance-icon">🛑</span>
+                            </div>
+                        </div>
+                        <!-- Horizontal balance -->
+                        <div class="balance-row">
+                            <span class="balance-axis">แนวราบ (Thrust-X vs Drag):</span>
+                            <div id="bal-horz-badge" class="balance-badge steady">
+                                <span id="bal-horz-txt">ความเร็วราบคงที่</span>
+                                <span id="bal-horz-icon" class="balance-icon">✔</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Direct Controls (Thrust & Pitch) -->
+                <div class="control-section">
+                    <div class="control-group-title">ควบคุมกำลังมอเตอร์และมุมบิน (Direct Controls)</div>
+                    <div class="control-row">
+                        <!-- Motor Power -->
+                        <div class="slider-box">
+                            <div class="slider-header">
+                                <span>กำลังเครื่องยนต์ (Power)</span>
+                                <span class="slider-value" id="val-power">0%</span>
+                            </div>
+                            <div class="slider-control">
+                                <input type="range" id="slide-power" min="0" max="100" value="0">
+                            </div>
+                            <div class="slider-desc">ปรับเปลี่ยนกำลังมอเตอร์ใบพัดเพื่อเปลี่ยนขนาดแรงขับ (Thrust)</div>
+                        </div>
+                        
+                        <!-- Tilt Angle -->
+                        <div class="slider-box">
+                            <div class="slider-header">
+                                <span>มุมเอียงทิศทาง (Tilt Angle)</span>
+                                <span class="slider-value" id="val-tilt">0°</span>
+                            </div>
+                            <div class="slider-control">
+                                <input type="range" id="slide-tilt" min="-45" max="45" value="0">
+                            </div>
+                            <div class="slider-desc">เอียงหัวโดรนเพื่อเปลี่ยนทิศทางของแรงขับเพื่อเลื่อนตัวทางราบ</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Presets -->
+                <div class="control-section">
+                    <div class="control-group-title">การจำลองบินสำเร็จรูป (Flight Presets)</div>
+                    <div class="preset-grid">
+                        <button class="btn btn-primary" onclick="triggerPreset('hover')">🛸 ลอยตัวนิ่งกลางเวหา (Hover)</button>
+                        <button class="btn" onclick="triggerPreset('takeoff')">⬆️ บินไต่ขึ้นตรง (Climb)</button>
+                        <button class="btn" onclick="triggerPreset('forward')">➡️ บินไปข้างหน้า (Forward)</button>
+                        <button class="btn" onclick="triggerPreset('land')">⬇️ ควบคุมความเร็วร่อนลง (Land)</button>
+                        <button class="btn btn-danger" style="grid-column: span 2;" onclick="triggerPreset('freefall')">❌ ดับเครื่องยนต์ตกลงอิสระ (Free Fall)</button>
+                    </div>
+                </div>
+
+                <!-- Specs Settings (Weight & Wind) -->
+                <div class="control-section" style="border-top: 1px solid var(--border-color); padding-top: 0.75rem; margin-top: 0.75rem;">
+                    <div class="control-group-title">ตัวแปรจำลองสภาพแวดล้อม (Experiment Settings)</div>
+                    <div class="control-row" style="gap: 6px;">
+                        <!-- Drone Weight -->
+                        <div class="slider-box">
+                            <div class="slider-header">
+                                <span>น้ำหนักโดรน (Drone Mass - m)</span>
+                                <span class="slider-value" id="val-mass">1.00 kg</span>
+                            </div>
+                            <div class="slider-control">
+                                <input type="range" id="slide-mass" min="0.5" max="3.0" step="0.1" value="1.0">
+                            </div>
+                            <div class="slider-desc">น้ำหนักมากจะทำให้แรงดึงดูดกระทำมากขึ้น (W = mg)</div>
+                        </div>
+
+                        <!-- Wind Speed -->
+                        <div class="slider-box">
+                            <div class="slider-header">
+                                <span>ความแรงลมแนวขวาง (Wind Speed)</span>
+                                <span class="slider-value" id="val-wind">0.0 m/s</span>
+                            </div>
+                            <div class="slider-control">
+                                <input type="range" id="slide-wind" min="-15" max="15" step="0.5" value="0">
+                            </div>
+                            <div class="slider-desc">ลมปะทะแนวขวางขัดขวางการเคลื่อนที่ทำให้เกิดแรงต้าน (Drag)</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        สื่อการศึกษาฟิสิกส์การบิน UAV | พัฒนาโดย AI Coding Assistant & UAV Flight Center | <span class="footer-logo">Flight Lab v2.2</span>
+    </footer>
+
+    <!-- Interactive Simulator JS -->
+    <script>
+        // DOM Elements
+        const canvas = document.getElementById('sim-canvas');
+        const ctx = canvas.getContext('2d');
+        const canvasWrapper = document.getElementById('canvas-wrapper');
+
+        // Sliders & Values
+        const slidePower = document.getElementById('slide-power');
+        const slideTilt = document.getElementById('slide-tilt');
+        const slideMass = document.getElementById('slide-mass');
+        const slideWind = document.getElementById('slide-wind');
+
+        const valPower = document.getElementById('val-power');
+        const valTilt = document.getElementById('val-tilt');
+        const valMass = document.getElementById('val-mass');
+        const valWind = document.getElementById('val-wind');
+
+        const statusLed = document.getElementById('status-led');
+        const txtFlightStatus = document.getElementById('txt-flight-status');
+
+        // Dashboard Badges
+        const balVertBadge = document.getElementById('bal-vert-badge');
+        const balVertTxt = document.getElementById('bal-vert-txt');
+        const balVertIcon = document.getElementById('bal-vert-icon');
+
+        const balHorzBadge = document.getElementById('bal-horz-badge');
+        const balHorzTxt = document.getElementById('bal-horz-txt');
+        const balHorzIcon = document.getElementById('bal-horz-icon');
+
+        // Buttons
+        const btnResetPos = document.getElementById('btn-reset-pos');
+        const btnGrid = document.getElementById('btn-grid');
+
+
+
+        // State Flags
+        let isGridEnabled = false;
+        
+        // Physics Parameters
+        const SCALE = 25; // 25 pixels = 1 meter
+        const MAX_THRUST = 25.0; // Max Thrust is 25 Newtons (at 100% Power)
+        const GRAVITY = 9.81; // Earth Gravity is fixed at 9.81
+        const DRAG_FACTOR = 0.05; // Drag Coefficient is fixed at 0.05
+        
+        let drone = {
+            x: 0,
+            y: 0,
+            vx: 0, // meters / sec
+            vy: 0, // meters / sec
+            angle: 0, // radians
+            propellerPhase: 0,
+            isCrashed: false,
+            trail: [] 
+        };
+
+        let clouds = [];
+        let lastTimestamp = 0;
+
+        // Reset Drone position to ground level runway
+        function resetDrone() {
+            const rect = canvas.getBoundingClientRect();
+            const canvasHeight = canvas.height / window.devicePixelRatio;
+            const GROUND_Y = canvasHeight - 50;
+
+            drone.x = rect.width / 2;
+            drone.y = GROUND_Y; // Ground level start
+            drone.vx = 0;
+            drone.vy = 0;
+            drone.angle = 0;
+            drone.isCrashed = false;
+            drone.trail = [];
+            
+            // Reset controls
+            slidePower.value = 0;
+            slideTilt.value = 0;
+            updateSliderReadouts();
+        }
+
+        // Reset button handler
+        btnResetPos.addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetDrone();
+        });
+
+        // Click on canvas to reset when crashed (User-Friendly UX)
+        canvasWrapper.addEventListener('click', () => {
+            if (drone.isCrashed) {
+                resetDrone();
+            }
+        });
+
+        // Initialize clouds
+        function initClouds() {
+            clouds = [];
+            const count = 8;
+            for(let i = 0; i < count; i++) {
+                clouds.push({
+                    x: Math.random() * canvas.width / window.devicePixelRatio,
+                    y: Math.random() * (canvas.height / window.devicePixelRatio - 110),
+                    size: Math.random() * 25 + 15,
+                    speedFactor: Math.random() * 0.4 + 0.8
+                });
+            }
+        }
+
+        // Handle responsiveness
+        function resizeCanvases() {
+            const simRect = canvasWrapper.getBoundingClientRect();
+            if (simRect.width === 0 || simRect.height === 0) {
+                requestAnimationFrame(resizeCanvases);
+                return;
+            }
+            canvas.width = simRect.width * window.devicePixelRatio;
+            canvas.height = simRect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            
+            resetDrone();
+            initClouds();
+        }
+
+        window.addEventListener('resize', resizeCanvases);
+
+        // Grid Button Toggle
+        btnGrid.addEventListener('click', () => {
+            isGridEnabled = !isGridEnabled;
+            btnGrid.classList.toggle('active', isGridEnabled);
+            btnGrid.style.backgroundColor = isGridEnabled ? 'var(--accent)' : '';
+            btnGrid.style.color = isGridEnabled ? 'white' : '';
+        });
+
+        // Theme Toggle Handler
+        const themeBtn = document.getElementById('theme-toggle-btn');
+        themeBtn.addEventListener('click', () => {
+            const currentTheme = document.body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', newTheme);
+            themeBtn.textContent = newTheme === 'dark' ? 'Light Mode' : 'Dark Mode';
+            
+            // Adjust sky canvas color background
+            const simWrapper = document.querySelector('.sim-wrapper');
+            if (newTheme === 'dark') {
+                simWrapper.style.backgroundColor = '#0f172a';
+            } else {
+                simWrapper.style.backgroundColor = '#f0f9ff';
+            }
+        });
+
+        // Sliders listeners
+        [slidePower, slideTilt, slideMass, slideWind].forEach(slide => {
+            slide.addEventListener('input', updateSliderReadouts);
+        });
+
+        function updateSliderReadouts() {
+            valPower.textContent = `${parseFloat(slidePower.value).toFixed(0)}%`;
+            valTilt.textContent = `${parseFloat(slideTilt.value).toFixed(0)}°`;
+            valMass.textContent = `${parseFloat(slideMass.value).toFixed(2)} kg`;
+            valWind.textContent = `${parseFloat(slideWind.value).toFixed(1)} m/s`;
+        }
+
+        // Presets Execution
+        window.triggerPreset = function(presetType) {
+            const m = parseFloat(slideMass.value);
+            const W = m * GRAVITY; // Weight in Newtons
+
+            if (presetType === 'hover') {
+                const hoverPower = (W / MAX_THRUST) * 100;
+                slidePower.value = Math.min(100, Math.max(0, hoverPower));
+                slideTilt.value = 0;
+            } 
+            else if (presetType === 'takeoff') {
+                const climbPower = (W * 1.35 / MAX_THRUST) * 100;
+                slidePower.value = Math.min(100, Math.max(0, climbPower));
+                slideTilt.value = 0;
+            } 
+            else if (presetType === 'forward') {
+                const rad = 15 * Math.PI / 180;
+                const reqPower = (W / Math.cos(rad) / MAX_THRUST) * 100;
+                slidePower.value = Math.min(100, Math.max(0, reqPower));
+                slideTilt.value = 15;
+            }
+            else if (presetType === 'land') {
+                const descendPower = (W * 0.75 / MAX_THRUST) * 100;
+                slidePower.value = Math.min(100, Math.max(0, descendPower));
+                slideTilt.value = 0;
+            } 
+            else if (presetType === 'freefall') {
+                slidePower.value = 0;
+                slideTilt.value = 0;
+            }
+
+            updateSliderReadouts();
+        };
+
+        // Core Physics Engine Loop
+        function updatePhysics(dt) {
+            if (dt <= 0) return;
+
+            const canvasWidth = canvas.width / window.devicePixelRatio;
+            const canvasHeight = canvas.height / window.devicePixelRatio;
+            const GROUND_Y = canvasHeight - 50;
+
+            // Read physical parameters
+            const powerPercent = parseFloat(slidePower.value);
+            const tiltDeg = parseFloat(slideTilt.value);
+            const mass = parseFloat(slideMass.value);
+            const wind = parseFloat(slideWind.value);
+
+            // Compute Drone Tilt Angle
+            drone.angle = (tiltDeg * Math.PI) / 180;
+
+            // Compute Force Vectors
+            const WEIGHT = mass * GRAVITY;
+            const totalThrust = (powerPercent / 100) * MAX_THRUST;
+            
+            // Thrust components
+            const thrustX = totalThrust * Math.sin(drone.angle);
+            const thrustY = totalThrust * Math.cos(drone.angle); // Lift component
+
+            // Relative speed to wind
+            const vRelX = drone.vx - wind;
+            const vRelY = drone.vy;
+
+            // Drag Forces
+            const dragForceX = -0.5 * DRAG_FACTOR * vRelX * Math.abs(vRelX);
+            const dragForceY = -0.5 * DRAG_FACTOR * vRelY * Math.abs(vRelY);
+            const totalDrag = Math.sqrt(dragForceX*dragForceX + dragForceY*dragForceY);
+
+            // Net Forces
+            const netFx = thrustX + dragForceX;
+            const netFy = -thrustY + WEIGHT + dragForceY; // Down is positive Y
+
+            // Acceleration a = F / m
+            const ax = netFx / mass;
+            const ay = netFy / mass;
+
+            // Integration
+            if (!drone.isCrashed) {
+                drone.vx += ax * dt;
+                drone.vy += ay * dt;
+                drone.x += drone.vx * SCALE * dt;
+                drone.y += drone.vy * SCALE * dt;
+            }
+
+            // Ground impact collision
+            if (drone.y >= GROUND_Y) {
+                if (drone.vy > 4.5 && !drone.isCrashed) {
+                    drone.isCrashed = true;
+                    slidePower.value = 0;
+                    slideTilt.value = 0;
+                } else {
+                    drone.y = GROUND_Y;
+                    drone.vy = 0;
+                    drone.vx *= 0.8; // High friction
+                    if (Math.abs(drone.vx) < 0.1) drone.vx = 0;
+                }
+            }
+
+            // Ceiling limit
+            if (drone.y < 30) {
+                drone.y = 30;
+                drone.vy = 0;
+            }
+
+            // Side walls boundary
+            if (drone.x < 30) {
+                drone.x = 30;
+                drone.vx = 0;
+            } else if (drone.x > canvasWidth - 30) {
+                drone.x = canvasWidth - 30;
+                drone.vx = 0;
+            }
+
+            // Propeller spin increment
+            if (powerPercent > 1) {
+                drone.propellerPhase += (powerPercent * 0.008);
+            }
+
+            // Update status & balance readouts
+            updateStatusLED(powerPercent, GROUND_Y, thrustY, WEIGHT);
+            updateForceBalanceDashboard(powerPercent, GROUND_Y, thrustY, WEIGHT, thrustX, dragForceX);
+
+            // Move clouds
+            clouds.forEach(cloud => {
+                cloud.x += (wind * 0.1 * cloud.speedFactor);
+                if (cloud.x > canvasWidth + 50) cloud.x = -50;
+                if (cloud.x < -50) cloud.x = canvasWidth + 50;
+            });
+
+        }
+
+        // Status led/text
+        function updateStatusLED(power, groundY, thrustY, WEIGHT) {
+            if (drone.isCrashed) {
+                statusLed.style.backgroundColor = 'var(--color-crash)';
+                txtFlightStatus.textContent = 'ตกกระแทกพื้นเสียหาย (Crashed!)';
+                txtFlightStatus.style.color = 'var(--color-crash)';
+                return;
+            }
+
+            if (drone.y >= groundY - 0.5 && power <= 5) {
+                statusLed.style.backgroundColor = 'var(--color-ground)';
+                txtFlightStatus.textContent = 'จอดนิ่งอยู่บนพื้น (Grounded)';
+                txtFlightStatus.style.color = 'var(--text-secondary)';
+            } else if (Math.abs(drone.vy) < 0.05 && Math.abs(drone.vx) < 0.05 && Math.abs(thrustY - WEIGHT) < 0.1) {
+                statusLed.style.backgroundColor = 'var(--color-hover)';
+                txtFlightStatus.textContent = 'ลอยตัวนิ่งรักษาสมดุล (Stationary Hover)';
+                txtFlightStatus.style.color = 'var(--color-hover)';
+            } else if (drone.vy < -0.1) {
+                statusLed.style.backgroundColor = 'var(--color-climb)';
+                txtFlightStatus.textContent = 'กำลังบินไต่ระดับขึ้น (Ascending)';
+                txtFlightStatus.style.color = 'var(--color-climb)';
+            } else if (drone.vy > 0.2) {
+                statusLed.style.backgroundColor = 'var(--color-descend)';
+                txtFlightStatus.textContent = 'กำลังบินร่อนระดับลง (Descending)';
+                txtFlightStatus.style.color = 'var(--color-descend)';
+            } else {
+                statusLed.style.backgroundColor = 'var(--accent)';
+                txtFlightStatus.textContent = 'บินเคลื่อนตัวแนวราบ';
+                txtFlightStatus.style.color = 'var(--text-primary)';
+            }
+        }
+
+        // Update Forces Balance Dashboard (User-Friendly visual physics interpretation)
+        function updateForceBalanceDashboard(power, groundY, thrustY, WEIGHT, thrustX, dragForce) {
+            // 1. Vertical Force Balance Analysis
+            if (drone.isCrashed) {
+                setBalanceBadge(balVertBadge, balVertTxt, balVertIcon, 'crashed', 'เสียหาย/ตกร่วง', '💥');
+            } else if (drone.y >= groundY - 0.5 && power <= 5) {
+                setBalanceBadge(balVertBadge, balVertTxt, balVertIcon, 'grounded', 'จอดนิ่งบนพื้น', '🛑');
+            } else {
+                const diff = thrustY - WEIGHT;
+                if (diff > 0.1) {
+                    setBalanceBadge(balVertBadge, balVertTxt, balVertIcon, 'climb', 'ไต่ระดับขึ้น (Lift > Weight)', '⬆️');
+                } else if (diff < -0.1) {
+                    setBalanceBadge(balVertBadge, balVertTxt, balVertIcon, 'descend', 'กำลังร่อนลง (Lift < Weight)', '⬇️');
+                } else {
+                    setBalanceBadge(balVertBadge, balVertTxt, balVertIcon, 'hover', 'ลอยตัวนิ่ง (Lift = Weight)', '✔');
+                }
+            }
+
+            // 2. Horizontal Force Balance Analysis
+            if (drone.isCrashed) {
+                setBalanceBadge(balHorzBadge, balHorzTxt, balHorzIcon, 'crashed', 'ไม่มีการเคลื่อนที่', '🛑');
+            } else if (drone.y >= groundY - 0.5 && power <= 5) {
+                setBalanceBadge(balHorzBadge, balHorzTxt, balHorzIcon, 'grounded', 'จอดนิ่งกับที่', '🛑');
+            } else {
+                // net horizontal forces = thrustX + dragForce
+                // thrustX is positive right, negative left
+                // dragForce is opposing relative speed
+                const netH = thrustX + dragForce;
+                if (drone.vx > 0.1) {
+                    setBalanceBadge(balHorzBadge, balHorzTxt, balHorzIcon, 'move-right', 'บินไปทางขวา ➡️', '🔵');
+                } else if (drone.vx < -0.1) {
+                    setBalanceBadge(balHorzBadge, balHorzTxt, balHorzIcon, 'move-left', 'บินไปทางซ้าย ⬅️', '🟡');
+                } else {
+                    setBalanceBadge(balHorzBadge, balHorzTxt, balHorzIcon, 'steady', 'บินนิ่งคงที่ (Thrust = Drag)', '✔');
+                }
+            }
+        }
+
+        function setBalanceBadge(badge, textEl, iconEl, className, text, icon) {
+            badge.className = `balance-badge ${className}`;
+            textEl.textContent = text;
+            iconEl.textContent = icon;
+        }
+
+        // Draw arrow helper
+        function drawArrow(ctx, x, y, angle, magnitude, color, label) {
+            if (magnitude < 2) return;
+            const length = magnitude * 1.5;
+
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+
+            // Draw line
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, -length);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Arrow head
+            ctx.beginPath();
+            ctx.moveTo(-5, -length + 7);
+            ctx.lineTo(0, -length);
+            ctx.lineTo(5, -length + 7);
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            // Label text
+            if (label) {
+                ctx.save();
+                ctx.translate(0, -length - 6);
+                ctx.rotate(-angle);
+                ctx.font = '600 10px Sarabun';
+                ctx.fillStyle = color;
+                ctx.textAlign = 'center';
+                ctx.fillText(label, 0, 0);
+                ctx.restore();
+            }
+
+            ctx.restore();
+        }
+
+        // Draw scene
+        function drawScene() {
+            const width = canvas.width / window.devicePixelRatio;
+            const height = canvas.height / window.devicePixelRatio;
+            const GROUND_Y = height - 50;
+
+            ctx.clearRect(0, 0, width, height);
+
+            const isDark = document.body.getAttribute('data-theme') === 'dark';
+
+            // 1. Draw Sky Gradient
+            let skyGrad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+            if (isDark) {
+                skyGrad.addColorStop(0, '#0f172a');
+                skyGrad.addColorStop(1, '#1e293b');
+            } else {
+                skyGrad.addColorStop(0, '#bae6fd');
+                skyGrad.addColorStop(1, '#e0f2fe');
+            }
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, width, GROUND_Y);
+
+            // 2. Draw Gridlines
+            if (isGridEnabled) {
+                ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)';
+                ctx.lineWidth = 1;
+                const gridSize = 40;
+                for (let x = 0; x < width; x += gridSize) {
+                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, GROUND_Y); ctx.stroke();
+                }
+                for (let y = 0; y < GROUND_Y; y += gridSize) {
+                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+                }
+            }
+
+            // 3. Draw Clouds
+            ctx.fillStyle = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255, 255, 255, 0.6)';
+            clouds.forEach(cloud => {
+                ctx.beginPath();
+                ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
+                ctx.arc(cloud.x + cloud.size*0.6, cloud.y - cloud.size*0.2, cloud.size*0.8, 0, Math.PI * 2);
+                ctx.arc(cloud.x - cloud.size*0.6, cloud.y - cloud.size*0.1, cloud.size*0.7, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 4. Draw Ground block
+            ctx.fillStyle = isDark ? '#0b0f19' : '#e2e8f0';
+            ctx.fillRect(0, GROUND_Y, width, height - GROUND_Y);
+
+            // Ground Surface line
+            ctx.strokeStyle = isDark ? '#222d44' : '#cbd5e1';
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(width, GROUND_Y); ctx.stroke();
+
+            // Helipad Landing Pad
+            const padX = width / 2;
+            ctx.fillStyle = isDark ? 'rgba(37, 99, 235, 0.15)' : 'rgba(37, 99, 235, 0.05)';
+            ctx.fillRect(padX - 50, GROUND_Y - 4, 100, 4);
+            ctx.strokeStyle = '#2563eb';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(padX - 50, GROUND_Y - 4, 100, 4);
+
+            // 5. Draw altitude ticks
+            ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.15)';
+            ctx.fillStyle = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)';
+            ctx.lineWidth = 1;
+            ctx.font = '8px JetBrains Mono';
+            ctx.textAlign = 'right';
+            for (let y = GROUND_Y; y >= 20; y -= SCALE) {
+                const altMeters = ((GROUND_Y - y) / SCALE).toFixed(0);
+                ctx.beginPath(); ctx.moveTo(width - 12, y); ctx.lineTo(width, y); ctx.stroke();
+                if (altMeters % 2 === 0) {
+                    ctx.fillText(`${altMeters}m`, width - 16, y + 3);
+                }
+            }
+
+            // 6. Drone Trail
+            if (!drone.isCrashed) {
+                drone.trail.push({x: drone.x, y: drone.y});
+                if (drone.trail.length > 20) drone.trail.shift();
+                
+                ctx.beginPath();
+                for(let i = 0; i < drone.trail.length; i++) {
+                    const opacity = i / drone.trail.length * 0.1;
+                    ctx.strokeStyle = isDark ? `rgba(255,255,255,${opacity})` : `rgba(37, 99, 235, ${opacity})`;
+                    ctx.lineWidth = 1.5;
+                    if(i === 0) ctx.moveTo(drone.trail[i].x, drone.trail[i].y);
+                    else ctx.lineTo(drone.trail[i].x, drone.trail[i].y);
+                }
+                ctx.stroke();
+            }
+
+            // 7. Draw Drone Model
+            ctx.save();
+            ctx.translate(drone.x, drone.y);
+            ctx.rotate(drone.angle);
+
+            if (drone.isCrashed) {
+                // Crash model representation
+                ctx.strokeStyle = '#64748b';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(-35, 2); ctx.lineTo(-10, -5);
+                ctx.moveTo(10, -5); ctx.lineTo(35, 8);
+                ctx.stroke();
+
+                ctx.fillStyle = '#475569';
+                ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI, true); ctx.fill();
+            } else {
+                // Minimalist Drone Frame
+                ctx.fillStyle = isDark ? '#1e293b' : '#64748b';
+                ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
+
+                ctx.strokeStyle = '#2563eb';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Arms
+                ctx.strokeStyle = isDark ? '#475569' : '#94a3b8';
+                ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.moveTo(-35, 0); ctx.lineTo(35, 0); ctx.stroke();
+
+                // Motor hubs
+                ctx.fillStyle = isDark ? '#334155' : '#475569';
+                ctx.fillRect(-38, -6, 5, 6);
+                ctx.fillRect(33, -6, 5, 6);
+
+                // LED Indicators (Red Left, Blue Right)
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath(); ctx.arc(-35, 3, 2, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#3b82f6';
+                ctx.beginPath(); ctx.arc(35, 3, 2, 0, Math.PI*2); ctx.fill();
+
+                // Propellers spin
+                const propBlur = Math.abs(Math.sin(drone.propellerPhase));
+                ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.2)';
+                ctx.lineWidth = 2;
+                
+                ctx.beginPath(); ctx.ellipse(-35, -8, 20 * propBlur, 1.5, 0, 0, Math.PI*2); ctx.stroke();
+                ctx.beginPath(); ctx.ellipse(35, -8, 20 * propBlur, 1.5, 0, 0, Math.PI*2); ctx.stroke();
+            }
+
+            ctx.restore();
+
+            // 8. Vector Overlays (Only basic 4 forces: Thrust, Lift, Weight, Drag)
+            if (!drone.isCrashed) {
+                const powerPercent = parseFloat(slidePower.value);
+                const mass = parseFloat(slideMass.value);
+                const wind = parseFloat(slideWind.value);
+
+                const WEIGHT = mass * GRAVITY;
+                const totalThrust = (powerPercent / 100) * MAX_THRUST;
+                const thrustY = totalThrust * Math.cos(drone.angle);
+
+                // 1. Weight Vector (Rose red)
+                drawArrow(ctx, drone.x, drone.y, Math.PI, WEIGHT * 4.5, 'var(--color-weight)', `Weight = ${WEIGHT.toFixed(1)} N`);
+
+                // 2. Thrust Vector (Emerald, perpendicular to drone angle)
+                drawArrow(ctx, drone.x, drone.y, drone.angle, totalThrust * 4.5, 'var(--color-thrust)', `Thrust = ${totalThrust.toFixed(1)} N`);
+
+                // 3. Lift Vector (Sky Blue, vertical component of thrust)
+                if (drone.angle !== 0 && totalThrust > 0.5) {
+                    drawArrow(ctx, drone.x, drone.y, 0, thrustY * 4.5, 'var(--color-lift)', `Lift = ${thrustY.toFixed(1)} N`);
+                }
+
+                // 4. Drag Vector (Purple, opposite to relative air velocity)
+                const vRelX = drone.vx - wind;
+                const vRelY = drone.vy;
+                const dragForceX = -0.5 * DRAG_FACTOR * vRelX * Math.abs(vRelX);
+                const dragForceY = -0.5 * DRAG_FACTOR * vRelY * Math.abs(vRelY);
+                const dragMag = Math.sqrt(dragForceX*dragForceX + dragForceY*dragForceY);
+
+                if (dragMag > 0.05) {
+                    const dragAngle = Math.atan2(dragForceY, dragForceX) + Math.PI/2;
+                    drawArrow(ctx, drone.x, drone.y, dragAngle, dragMag * 30, 'var(--color-drag)', `Drag = ${dragMag.toFixed(1)} N`);
+                }
+            }
+
+            // 9. Interactive Guidance Tooltips (User-Friendly UX)
+            if (drone.y >= GROUND_Y && parseFloat(slidePower.value) < 35 && !drone.isCrashed) {
+                // Grounded Takeoff Bouncing Tooltip
+                const bx = width / 2;
+                // Bouncing wave offset using sine time function
+                const bounceOffset = Math.sin(Date.now() / 150) * 3;
+                const by = GROUND_Y - 95 + bounceOffset;
+                
+                ctx.save();
+                ctx.shadowColor = 'rgba(0,0,0,0.1)';
+                ctx.shadowBlur = 6;
+                ctx.fillStyle = isDark ? 'rgba(21, 28, 44, 0.95)' : 'rgba(255, 255, 255, 0.95)';
+                ctx.strokeStyle = 'var(--accent)';
+                ctx.lineWidth = 1.5;
+                
+                // Draw rounded tooltip body
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                    ctx.roundRect(bx - 120, by, 240, 32, 6);
+                } else {
+                    ctx.rect(bx - 120, by, 240, 32);
+                }
+                ctx.fill();
+                ctx.stroke();
+                
+                // Draw arrow tip
+                ctx.beginPath();
+                ctx.moveTo(bx - 8, by + 32);
+                ctx.lineTo(bx, by + 38);
+                ctx.lineTo(bx + 8, by + 32);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+                
+                ctx.fillStyle = 'var(--text-primary)';
+                ctx.font = '600 10.5px Sarabun';
+                ctx.textAlign = 'center';
+                ctx.fillText("💡 ทิป: เร่งกำลังเครื่องยนต์ > 39% เพื่อบินขึ้น!", bx, by + 20);
+            }
+
+            if (drone.isCrashed) {
+                // Crash Overlay
+                ctx.save();
+                ctx.fillStyle = 'rgba(225, 29, 72, 0.15)'; // transparent rose red
+                ctx.fillRect(0, 0, width, GROUND_Y);
+                
+                const bx = width / 2;
+                const by = height / 2.5;
+                
+                ctx.fillStyle = isDark ? 'rgba(21, 28, 44, 0.95)' : 'rgba(255, 255, 255, 0.95)';
+                ctx.strokeStyle = 'var(--color-crash)';
+                ctx.lineWidth = 2;
+                
+                ctx.shadowColor = 'rgba(0,0,0,0.2)';
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                    ctx.roundRect(bx - 150, by - 30, 300, 70, 10);
+                } else {
+                    ctx.rect(bx - 150, by - 30, 300, 70);
+                }
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+                
+                ctx.fillStyle = 'var(--color-crash)';
+                ctx.font = 'bold 12px Sarabun';
+                ctx.textAlign = 'center';
+                ctx.fillText("💥 โดรนตกพังเสียหาย (Drone Crashed!)", bx, by - 5);
+                
+                ctx.fillStyle = 'var(--text-secondary)';
+                ctx.font = '600 10px Sarabun';
+                ctx.fillText("👉 คลิกบนหน้าจอนี้เบาๆ เพื่อจัดตั้งต้นบินใหม่ 👈", bx, by + 20);
+            }
+        }
+
+        // Main Simulation Loop
+        function simulationLoop(timestamp) {
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            const dt = Math.min((timestamp - lastTimestamp) / 1000, 0.1);
+            lastTimestamp = timestamp;
+
+            updatePhysics(dt);
+            drawScene();
+
+            requestAnimationFrame(simulationLoop);
+        }
+
+        // Startup Trigger
+        resizeCanvases();
+        resetDrone();
+        requestAnimationFrame(simulationLoop);
+    </script>
+</body>
+</html>
